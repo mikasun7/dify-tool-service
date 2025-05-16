@@ -1,11 +1,10 @@
-from flask import Flask, request, send_from_directory, jsonify
+from flask import Flask, request, send_from_directory, jsonify, render_template, render_template_string
 
 import os
 import markdown
 import time
-from jinja2 import Environment, PackageLoader, select_autoescape
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='app/static', template_folder='app/templates')
 
 # 配置文件夹路径
 UPLOAD_FOLDER = './markdown-quiz-files'
@@ -21,7 +20,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 @app.route('/upload_markdown', methods=['POST'])
 def upload_markdown():
     content = request.get_data(as_text=True)
-    print(content)
+    print("content:\n", content)
     if content is None:
         return jsonify({"error": "Invalid input"}), 400
     """Render quiz in Markdown format to HTML."""
@@ -29,20 +28,17 @@ def upload_markdown():
         "tables", "app.extensions.checkbox", "app.extensions.radio",
         "app.extensions.textbox"
     ]
-    html = markdown.markdown(content,
-                             extensions=extensions,
-                             output_format="html5")
-    env = Environment(loader=PackageLoader('app', 'static'),
-                      autoescape=select_autoescape(['html', 'xml']))
-    javascript = env.get_template('app.js').render()
-    test_html = env.get_template('base.html').render(content=html,
-                                                     javascript=javascript)
-    test_html = env.get_template('wrapper.html').render(content=test_html)
+    
+    html = markdown.markdown(content, extensions=extensions, output_format="html5")
+
+    # 使用 Flask 自带的 render_template_string 来渲染 HTML 片段
+    print(app.jinja_loader.searchpath)
+    base_html = render_template('base.html', content=html)
+    final_html = render_template('wrapper.html', content=base_html)
+
     filename = str(int(time.time()))
-    with open(os.path.join(OUTPUT_FOLDER, f"{filename}.html"),
-              "w+",
-              encoding='utf-8') as f:  # create final file
-        f.write(test_html)
+    with open(os.path.join(OUTPUT_FOLDER, f"{filename}.html"), "w+", encoding='utf-8') as f:
+        f.write(final_html)
 
     return jsonify(
         {"message":
