@@ -42,7 +42,7 @@ def upload_markdown():
 
     return jsonify(
         {"message":
-         f"保存成功\n查看链接http://127.0.0.1:5006/get_html/{filename}"}), 200
+         f"http://127.0.0.1:5006/get_html/{filename}"}), 200
 
 
 @app.route('/get_html/<filename>', methods=['GET'])
